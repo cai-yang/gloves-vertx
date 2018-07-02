@@ -1,0 +1,91 @@
+<html>
+<head>
+  <title></title>
+  <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+  <script src="//cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
+  <script src="vertx-eventbus.js"></script>
+</head>
+
+<style>
+  .news {
+    font-size: 20pt;
+  }
+</style>
+
+<body>
+
+<div class="news">Latest news:</div>
+<br>
+
+<div id="status" class="news"></div>
+<canvas id="myCanvas" width="1280" height="720" style="border:1px solid #d3d3d3;">
+  Your browser does not support the HTML5 canvas tag.
+</canvas>
+<script>
+
+  var eb = new EventBus("http://localhost:3000/eventbus/");
+  var LASTPOS1=90;
+  var LASTPOS=90;
+  var sindata=[];
+  var pwidth=4;
+  var thiscol=pwidth;
+  var thissin=1;
+  var c = document.getElementById('myCanvas');
+  var ctx = c.getContext("2d");
+
+  for (var i = 0 ; i < 2*Math.PI ; i+= 0.01)
+    sindata.push(-Math.round(200*Math.sin(i)+70*Math.random()+30*Math.random()+50*Math.random()));
+  sindata.push(0);
+
+  function draw(pos,lastpos){
+    if(!pos){pos=LASTPOS;}
+    if(!lastpos){lastpos=LASTPOS;}
+    ctx.fillStyle="#000000";
+    ctx.fillRect(thiscol,0,3*pwidth,c.height);
+    ctx.beginPath();
+    //ctx.moveTo(thiscol,360+sindata[thissin-1]);
+    //ctx.lineTo(thiscol+5,360+sindata[thissin]);
+    ctx.moveTo(thiscol,c.height-lastpos);
+    ctx.lineTo(thiscol+pwidth,c.height-pos);
+    ctx.strokeStyle="#00ff00";
+    ctx.stroke();
+
+    //ctx.beginPath();
+    //ctx.moveTo(thiscol+2*pwidth,0)
+    //ctx.lineTo(thiscol+2*pwidth,c.height)
+    ctx.fillStyle="#00ff00";
+    //ctx.stroke();
+    ctx.fillRect(thiscol+2*pwidth,0,1,c.height);
+
+    if(thiscol<1280-pwidth+1){/*thiscol+=pwidth;*/} else {
+      ctx.clearRect(thiscol,0,3*pwidth,c.height);
+      ctx.clearRect(pwidth-1,0,1,c.height);
+      thiscol=pwidth;}
+    if(thissin<sindata.length-1){thissin+=1;}else{thissin=1;}
+    LASTPOS=pos;
+    return Number(pos);
+  }
+
+function clear(){
+  ctx.fillStyle="#000000";
+  ctx.fillRect(0,0,c.width,c.height);
+}
+
+  eb.onopen = function () {
+    //c1.clearCanvas();
+    clear();
+   //clear("myCanvas2");
+    setInterval(draw,1);
+    //setInterval(draw,2);
+    eb.registerHandler("news-feed", function (err, msg) {
+      //if(LASTPOS1>0){LASTPOS1=draw(Number(msg.body),Number(LASTPOS1));thiscol+=pwidth;}
+      //else{LASTPOS1=Number(msg.body);}
+      var str = "<code>" + msg.body + "</code><br>";
+      $('#status').prepend(str);
+    })
+  }
+
+</script>
+
+</body>
+</html>

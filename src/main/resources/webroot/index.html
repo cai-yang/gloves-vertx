@@ -1,0 +1,311 @@
+<html>
+<head>
+  <title></title>
+  <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+  <script src="//cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
+  <script src="vertx-eventbus.js"></script>
+  <script src="paho-mqtt.js"></script>
+
+</head>
+
+<style>
+  .news {
+    font-size: 20pt;
+  }
+</style>
+
+<body>
+
+<!--<div class="news">Latest news:</div>
+<br>
+-->
+<div id="status" class="news"></div>
+<div id="mqtt" class="news"></div>
+<input id="mqttAddress" type="text" name="mqtt"/>
+<button type="button1" onclick="mqtt_connect()">Connect!</button>
+<button type="button2" onclick="disco()">Disconnect!</button>
+<br>
+<!--<input type="radio" name="hand" value="left" >左手<br>
+<input type="radio" name="hand" value="right" >右手<br>-->
+<canvas id="myCanvas" width="620" height="720" style="border:1px solid #d3d3d3;">
+  Your browser does not support the HTML5 canvas tag.
+</canvas>
+<canvas id="myCanvas2" width="620" height="720" style="border:1px solid #d3d3d3;">
+  Your browser does not support the HTML5 canvas tag.
+</canvas>
+<script>
+  var connectipaddress="192.168.1.109";
+  var btn = document.getElementById('button');
+  var intervalID=0;
+  function disco() {
+    client.disconnect();
+    connected = false;
+    document.getElementById('mqtt').innerHTML = "Disconnected from server... Done.";
+    clearInterval(intervalID);
+    eb.publish("command","stop");
+
+  }
+  var client = null;
+  var connected = false;
+  function onConnect(context) {
+    // Once a connection has been made, make a subscription and send a message.
+    console.log("Client Connected");
+    var statusSpan = document.getElementById("connectionStatus");
+    document.getElementById('mqtt').innerHTML = "Connected to: " + context.invocationContext.host + ':' + context.invocationContext.port + context.invocationContext.path + ' as ' + context.invocationContext.clientId;
+    connected = true;
+    subscribe("gloves/#");
+    clear();
+    intervalID = setInterval(draw,20);
+    //eb.publish("sendit","1");
+    //setFormEnabledState(true);
+    eb.publish("command","start");
+  }
+
+  function onFail(context) {
+    console.log("Failed to connect");
+    var statusSpan = document.getElementById("connectionStatus");
+    statusSpan.innerHTML = "Failed to connect: " + context.errorMessage;
+    connected = false;
+    //setFormEnabledState(false);
+  }
+  function onMessageArrived(message) {
+    console.log('Message Recieved: Topic: ', message.destinationName, '. Payload: ', message.payloadString, '. QoS: ', message.qos);
+    console.log(message);
+    var messageTime = new Date().toISOString();
+    //document.getElementById('status').innerHTML = safe_tags_regex(message.payloadString*2+20);
+    if(message.destinationName=="gloves/l1"){
+      if (LASTPOS[0] ) {
+        POS[0] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS[0] = Number(message.payloadString);
+      }
+    }
+    if(message.destinationName=="gloves/l2") {
+      if (LASTPOS[1] ) {
+        POS[1] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS[1] = Number(message.payloadString);
+      }
+    }
+    if(message.destinationName=="gloves/l3") {
+      if (LASTPOS[2] ) {
+        POS[2] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS[2] = Number(message.payloadString);
+      }
+    }
+    if (message.destinationName == "gloves/l4") {
+      if (LASTPOS[3] ) {
+        POS[3] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS[3] = Number(message.payloadString);
+      }
+    }
+    if (message.destinationName == "gloves/l5") {
+      if (LASTPOS[4] ) {
+        POS[4] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS[4] = Number(message.payloadString);
+      }
+    }
+    if(message.destinationName=="gloves/r1"){
+      if (LASTPOS2[0] ) {
+        POS2[0] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS2[0] = Number(message.payloadString);
+      }
+    }
+    if(message.destinationName=="gloves/r2") {
+      if (LASTPOS2[1] ) {
+        POS2[1] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS2[1] = Number(message.payloadString);
+      }
+    }
+    if(message.destinationName=="gloves/r3") {
+      if (LASTPOS2[2] ) {
+        POS2[2] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS2[2] = Number(message.payloadString);
+      }
+    }
+    if (message.destinationName == "gloves/r4") {
+      if (LASTPOS2[3] ) {
+        POS2[3] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS2[3] = Number(message.payloadString);
+      }
+    }
+    if (message.destinationName == "gloves/r5") {
+      if (LASTPOS2[4] ) {
+        POS2[4] = Number(message.payloadString);
+        //draw(9);
+        //thiscol += pwidth;
+      }
+      else {
+        LASTPOS2[4] = Number(message.payloadString);
+      }
+    }
+
+  }
+  function mqtt_connect(){
+    clearInterval(intervalID);
+    connectipaddress = document.getElementById("mqttAddress").value;
+    var hostname = connectipaddress;
+    var port = "1884";
+    var clientId="javascriptClient";
+    var path = "";
+    var timeout = 3;
+    var keepAlive = 60;
+    var cleanSession = true;
+    var tls=false;
+    if(path.length > 0){
+      client = new Paho.MQTT.Client(hostname, Number(port), path, clientId);
+    } else {
+      client = new Paho.MQTT.Client(hostname,Number(port),"",clientId);
+    }
+    client.onMessageArrived = onMessageArrived;
+    var options = {
+      invocationContext: {host : hostname, port: port, path: client.path, clientId: clientId},
+      timeout: timeout,
+      keepAliveInterval:keepAlive,
+      cleanSession: cleanSession,
+      useSSL: tls,
+      onSuccess: onConnect,
+      onFailure: onFail
+    };
+    client.connect(options);
+  }
+  function safe_tags_regex(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function subscribe(topic){
+    //var topic = "feed1";
+    var qos = 0;
+    console.info('Subscribing to: Topic: ', topic, '. QoS: ', qos);
+    client.subscribe(topic, {qos: Number(qos)});
+  }
+  var eb = new EventBus("http://"+connectipaddress+":8888/eventbus/");
+  var LASTPOS=[null,null,null,null,null,null,null,null,null];
+  var POS=[10,10,10,10,10,10,10,10,10];
+  var LASTPOS2=[null,null,null,null,null,null,null,null,null];
+  var POS2=[10,10,10,10,10,10,10,10,10];
+  var sindata=[];
+  var pwidth=1;
+  var thiscol=pwidth;
+  var thissin=1;
+  var c = document.getElementById('myCanvas');
+  var ctx = c.getContext("2d");
+  var c2 = document.getElementById('myCanvas2');
+  var ctx2 = c2.getContext("2d");
+  //connect();
+
+  for (var i = 0 ; i < 2*Math.PI ; i+= 0.01)
+    sindata.push(-Math.round(200*Math.sin(i)+70*Math.random()+30*Math.random()+50*Math.random()));
+  sindata.push(0);
+
+  function draw(rows){
+    if(!rows){rows=5;}
+    for(var i=1;i<=rows;i++) {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(thiscol, c.height / rows * (i - 1), 5 * pwidth, c.height / rows * i);
+      ctx.beginPath();
+      ctx.moveTo(thiscol, (c.height / rows * i) - LASTPOS[i-1] / rows-20);
+      ctx.lineTo(thiscol + pwidth, (c.height / rows * i) -  POS[i-1]/ rows-20);
+      ctx.strokeStyle = "#00ff00";
+      ctx.stroke();
+      LASTPOS[i-1]=POS[i-1];
+      ctx2.fillStyle = "#000000";
+      ctx2.fillRect(thiscol, c.height / rows * (i - 1), 5 * pwidth, c.height / rows * i);
+      ctx2.beginPath();
+      ctx2.moveTo(thiscol, (c.height / rows * i) - LASTPOS2[i-1] / rows-20);
+      ctx2.lineTo(thiscol + pwidth, (c.height / rows * i) -  POS2[i-1]/ rows-20);
+      ctx2.strokeStyle = "#00ff00";
+      ctx2.stroke();
+      LASTPOS2[i-1]=POS2[i-1];
+    }
+    if(thiscol<620-pwidth+1){/*thiscol+=pwidth;*/} else {
+      ctx.clearRect(thiscol,0,3*pwidth,c.height);
+      ctx2.clearRect(thiscol,0,3*pwidth,c.height);
+      ctx.clearRect(pwidth-1,0,1,c.height);
+      ctx2.clearRect(pwidth-1,0,1,c.height);
+      thiscol=pwidth;}
+    if(thissin<sindata.length-1){thissin+=1;}else{thissin=1;}
+    thiscol+=pwidth;
+    //return Number(pos);
+    //document.getElementById('status').innerHTML = Math.round((POS[0]-20)/2)+"\t"+Math.round((POS[1]-20)/2)+"\t"+Math.round((POS[2]-20)/2)+"\t"+Math.round((POS[3]-20)/2)+"\t"+Math.round((POS[4]-20)/2);
+  }
+
+function clear(){
+  ctx.fillStyle="#000000";
+  ctx.fillRect(0,0,c.width,c.height);
+  ctx2.fillStyle="#000000";
+  ctx2.fillRect(0,0,c.width,c.height);
+  thiscol = pwidth;
+}
+
+  eb.onopen = function () {
+    //c1.clearCanvas();
+    //clear();//document.getElementById('status').innerHTML = str;
+   //clear("myCanvas2");
+    //setInterval(draw,20);
+    //setInterval(draw,2);
+    eb.registerHandler("news-feed", function (err, msg) {
+      //if (LASTPOS[0] > 0) {
+        //POS[0] = Number(msg.body);
+        //draw(9);
+        //thiscol += pwidth;
+      //}
+      //else {
+      //  LASTPOS[0] = Number(msg.body);
+      //}
+
+      var str = "<b>" + msg.body + "</b><br>";
+      //$('#status').prepend(str);
+      document.getElementById('status').innerHTML = str;
+    });
+    eb.registerHandler("news-feed2", function (err, msg) {
+      //if (LASTPOS[2] > 0) {
+      //  POS[2] = Number(msg.body);
+        //draw(9);
+        //thiscol += pwidth;
+      //}
+      //else {
+      //  LASTPOS[2] = Number(msg.body);
+      //}
+    });
+
+  }
+
+</script>
+
+</body>
+</html>
